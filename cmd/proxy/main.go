@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -37,7 +38,7 @@ func debugRequest(req *httputil.ProxyRequest) {
 
 }
 
-func createProxy(targetURL string, pathPrefix string, headerRewrite HeaderRewriteFunc, secretKey secret.Secret) *httputil.ReverseProxy {
+func createProxy(targetURL string, pathPrefix string, headerRewrite HeaderRewriteFunc, secretKey secret.Secret, outboundProxyURL string) *httputil.ReverseProxy {
 	target, err := url.Parse(targetURL)
 	if err != nil {
 		panic(err)
@@ -60,16 +61,45 @@ func createProxy(targetURL string, pathPrefix string, headerRewrite HeaderRewrit
 		},
 	}
 
+	// Configure outbound proxy for the transport
+	transport := &http.Transport{}
+	if outboundProxyURL != "" {
+		proxyURL, err := url.Parse(outboundProxyURL)
+		if err != nil {
+			log.Printf("Error parsing outbound proxy URL '%s': %v. Proceeding without outbound proxy.", outboundProxyURL, err)
+		} else {
+			transport.Proxy = http.ProxyURL(proxyURL)
+			log.Printf("Using outbound proxy: %s", proxyURL.String())
+		}
+	}
+	// If outboundProxyURL is empty or invalid, transport.Proxy will remain nil,
+	// and http.DefaultTransport (which uses environment variables like HTTP_PROXY) will be effectively used by default by the ReverseProxy.
+	// To ensure our explicit proxy setting (or lack thereof) is used, we always set the transport.
+	// If no proxy is set, it will use a new transport with no proxy, overriding env vars.
+	// If you want to respect HTTP_PROXY, HTTPS_PROXY, NO_PROXY env vars when outboundProxyURL is not set, use http.DefaultTransport.
+	// For this specific feature, we want to explicitly control the proxy via the command-line flag or have no proxy if not specified there.
+	if outboundProxyURL == "" {
+		log.Println("No outbound proxy URL provided. Using direct connection.")
+		// Ensure no proxy is used if not specified, effectively overriding environment variables.
+		transport.Proxy = nil // Explicitly set to nil to override environment proxy settings
+	} // else, transport.Proxy is already set if outboundProxyURL was valid, or nil if parsing failed (with a log message)
+
+	proxy.Transport = transport
+
 	return proxy
 }
 
 func main() {
+	outboundProxyURL := flag.String("outbound-proxy-url", "", "Optional. URL of the outbound proxy server (e.g., http://user:pass@host:port or socks5://user:pass@host:port).")
+	flag.Parse()
+
+	println("outboundProxyURL", *outboundProxyURL)
 
 	secretKey := secret.Load()
 	// Create proxies with their respective header rewrite functions
-	openaiProxy := createProxy("https://api.openai.com", "/openai", RewriteOpenAIHeader, secretKey)
-	geminiProxy := createProxy("https://generativelanguage.googleapis.com", "/gemini", RewriteGeminiRequest, secretKey)
-	claudeProxy := createProxy("https://api.anthropic.com", "/claude", RewriteClaudeHeader, secretKey)
+	openaiProxy := createProxy("https://api.openai.com", "/openai", RewriteOpenAIHeader, secretKey, *outboundProxyURL)
+	geminiProxy := createProxy("https://generativelanguage.googleapis.com", "/gemini", RewriteGeminiRequest, secretKey, *outboundProxyURL)
+	claudeProxy := createProxy("https://api.anthropic.com", "/claude", RewriteClaudeHeader, secretKey, *outboundProxyURL)
 
 	// Route handlers
 	http.HandleFunc("/openai/", func(w http.ResponseWriter, r *http.Request) {
