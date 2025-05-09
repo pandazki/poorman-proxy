@@ -7,4 +7,6 @@ test:
 	go test ./...
 
 debug:
-	./test/openai_chat.sh
+	# ./test/openai_chat.sh
+	# ./test/claude_chat.sh
+	./test/gemini_chat.sh

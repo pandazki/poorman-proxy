@@ -3,6 +3,8 @@ package main
 import (
 	"net/http/httputil"
 	"poorman-proxy/secret"
+
+	"golang.org/x/exp/slices"
 )
 
 // RewriteGeminiRequest modifies the request header for Gemini API
@@ -18,19 +20,16 @@ func RewriteGeminiRequest(req *httputil.ProxyRequest, key_info secret.Secret) {
 	user_query := req.In.URL.Query()
 	user_key := user_query.Get("key")
 
-	found := false
-	for _, key := range key_info.GeminiProxyKey {
-		if user_key == key {
-			gemini_key = key
-			found = true
-			break
-		}
-	}
+	found := slices.Contains(key_info.GeminiProxyKey, user_key)
+
 	if !found {
 		// reject the request by sending empty key
-		req.Out.URL.Query().Set("key", "")
+		q := req.Out.URL.Query()
+		q.Set("key", "")
+		req.Out.URL.RawQuery = q.Encode()
 		return
 	}
-	req.Out.URL.Query().Set("key", gemini_key)
-	return
+	q := req.Out.URL.Query()
+	q.Set("key", gemini_key)
+	req.Out.URL.RawQuery = q.Encode()
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"net/http/httputil"
 	"poorman-proxy/secret"
+	"slices"
 )
 
 // RewriteOpenAIHeader modifies the request header for OpenAI API.
@@ -29,14 +30,7 @@ func RewriteOpenAIHeader(req *httputil.ProxyRequest, key_info secret.Secret) {
 		user_key = user_key[7:]
 	}
 
-	found := false
-	for _, key := range key_info.OpenAIProxyKey {
-		if user_key == key {
-			openai_key = key
-			found = true
-			break
-		}
-	}
+	found := slices.Contains(key_info.OpenAIProxyKey, user_key)
 
 	if !found {
 		// reject the request by sending empty authorization
