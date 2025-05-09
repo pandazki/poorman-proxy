@@ -6,5 +6,5 @@ build:
 test:
 	go test ./...
 
-debug: build
+debug:
 	./test/openai_chat.sh

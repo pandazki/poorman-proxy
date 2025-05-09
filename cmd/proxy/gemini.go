@@ -1,7 +1,7 @@
 package main
 
 import (
-	"net/http"
+	"net/http/httputil"
 	"poorman-proxy/secret"
 )
 
@@ -13,9 +13,9 @@ import (
 //			--no-buffer \
 //			-d '{ "contents":[{"parts":[{"text": "Write long a story about a magic backpack."}]}]}' \
 //			2> /dev/null
-func RewriteGeminiRequest(req *http.Request, key_info secret.Secret) {
+func RewriteGeminiRequest(req *httputil.ProxyRequest, key_info secret.Secret) {
 	gemini_key := key_info.GeminiKey
-	user_query := req.URL.Query()
+	user_query := req.In.URL.Query()
 	user_key := user_query.Get("key")
 
 	found := false
@@ -28,11 +28,9 @@ func RewriteGeminiRequest(req *http.Request, key_info secret.Secret) {
 	}
 	if !found {
 		// reject the request by sending empty key
-		user_query.Del("key")
-		user_query.Set("key", "")
+		req.Out.URL.Query().Set("key", "")
 		return
 	}
-	user_query.Del("key")
-	user_query.Set("key", gemini_key)
+	req.Out.URL.Query().Set("key", gemini_key)
 	return
 }

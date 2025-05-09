@@ -1,7 +1,7 @@
 package main
 
 import (
-	"net/http"
+	"net/http/httputil"
 	"poorman-proxy/secret"
 )
 
@@ -20,9 +20,9 @@ import (
 //				}
 //			]
 //		}'
-func RewriteOpenAIHeader(req *http.Request, key_info secret.Secret) {
+func RewriteOpenAIHeader(req *httputil.ProxyRequest, key_info secret.Secret) {
 	openai_key := key_info.OpenAIKey
-	user_key := req.Header.Get("Authorization")
+	user_key := req.In.Header.Get("Authorization")
 
 	// Strip "Bearer " prefix if present
 	if len(user_key) > 7 && user_key[:7] == "Bearer " {
@@ -40,12 +40,10 @@ func RewriteOpenAIHeader(req *http.Request, key_info secret.Secret) {
 
 	if !found {
 		// reject the request by sending empty authorization
-		req.Header.Del("Authorization")
-		req.Header.Set("Authorization", "")
+		req.Out.Header.Set("Authorization", "")
 		return
 	}
 
 	// Set the proper Authorization header with Bearer prefix
-	req.Header.Del("Authorization")
-	req.Header.Set("Authorization", "Bearer "+openai_key)
+	req.Out.Header.Set("Authorization", "Bearer "+openai_key)
 }

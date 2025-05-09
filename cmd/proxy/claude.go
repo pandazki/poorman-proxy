@@ -1,7 +1,7 @@
 package main
 
 import (
-	"net/http"
+	"net/http/httputil"
 	"poorman-proxy/secret"
 )
 
@@ -23,10 +23,9 @@ import (
 //	        {"role": "user", "content": "Hello, Claude"}
 //	    ]
 //	}'
-func RewriteClaudeHeader(req *http.Request, key_info secret.Secret) {
-
+func RewriteClaudeHeader(req *httputil.ProxyRequest, key_info secret.Secret) {
 	claude_key := key_info.ClaudeKey
-	user_key := req.Header.Get("x-api-key")
+	user_key := req.In.Header.Get("x-api-key")
 
 	found := false
 	for _, key := range key_info.ClaudeProxyKey {
@@ -39,12 +38,10 @@ func RewriteClaudeHeader(req *http.Request, key_info secret.Secret) {
 
 	if !found {
 		// reject the request by sending empty authorization
-		req.Header.Del("x-api-key")
-		req.Header.Set("x-api-key", "")
+		req.Out.Header.Set("x-api-key", "")
 		return
 	}
 
 	// Set the proper Authorization header with Bearer prefix
-	req.Header.Del("x-api-key")
-	req.Header.Set("x-api-key", claude_key)
+	req.Out.Header.Set("x-api-key", claude_key)
 }

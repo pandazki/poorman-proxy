@@ -4,7 +4,7 @@ file="$(dirname "$0")/env.sh"
 # shellcheck source=../.env
 source "${file}"
 
-curl "http://localhost:8080/openai/v1/chat/completions" \
+curl "localhost:8080/openai/v1/chat/completions" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $OPENAI_PROXY_KEY" \
     -d '{
