@@ -20,7 +20,7 @@ func RewriteGeminiRequest(req *httputil.ProxyRequest, key_info secret.Secret) {
 	user_query := req.In.URL.Query()
 	user_key := user_query.Get("key")
 
-	found := slices.Contains(key_info.GeminiProxyKey, user_key)
+	found := slices.Contains(key_info.ProxyKey, user_key)
 
 	if !found {
 		// reject the request by sending empty key

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 file="$(dirname "$0")/env.sh"
-# shellcheck source=../.env
-source "${file}"
+# shellcheck source=./env.sh
+. "${file}"
 
 curl "localhost:8080/openai/v1/chat/completions" \
     -H "Content-Type: application/json" \

@@ -1,8 +1,8 @@
 #!/bin/sh
 
 file="$(dirname "$0")/env.sh"
-# shellcheck source=../.env
-source "${file}"
+# shellcheck source=./env.sh
+. "${file}"
 
 # curl https://api.anthropic.com/v1/messages \
 curl localhost:8080/claude/v1/messages \

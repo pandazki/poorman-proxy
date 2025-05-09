@@ -28,7 +28,7 @@ func RewriteClaudeHeader(req *httputil.ProxyRequest, key_info secret.Secret) {
 	claude_key := key_info.ClaudeKey
 	user_key := req.In.Header.Get("x-api-key")
 
-	found := slices.Contains(key_info.ClaudeProxyKey, user_key)
+	found := slices.Contains(key_info.ProxyKey, user_key)
 
 	if !found {
 		// reject the request by sending empty authorization

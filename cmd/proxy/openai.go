@@ -30,7 +30,7 @@ func RewriteOpenAIHeader(req *httputil.ProxyRequest, key_info secret.Secret) {
 		user_key = user_key[7:]
 	}
 
-	found := slices.Contains(key_info.OpenAIProxyKey, user_key)
+	found := slices.Contains(key_info.ProxyKey, user_key)
 
 	if !found {
 		// reject the request by sending empty authorization

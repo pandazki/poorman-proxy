@@ -9,12 +9,12 @@ import (
 var secretJSON []byte
 
 type Secret struct {
-	OpenAIKey      string   `json:"openai_api_key"`
-	GeminiKey      string   `json:"gemini_api_key"`
-	ClaudeKey      string   `json:"claude_api_key"`
-	OpenAIProxyKey []string `json:"openai_proxy_key"`
-	GeminiProxyKey []string `json:"gemini_proxy_key"`
-	ClaudeProxyKey []string `json:"claude_proxy_key"`
+	OpenAIKey string   `json:"openai_api_key"`
+	GeminiKey string   `json:"gemini_api_key"`
+	ClaudeKey string   `json:"claude_api_key"`
+	ProxyKey  []string `json:"proxy_key"`
+	// GeminiProxyKey []string `json:"gemini_proxy_key"`
+	// ClaudeProxyKey []string `json:"claude_proxy_key"`
 }
 
 func Load() Secret {
