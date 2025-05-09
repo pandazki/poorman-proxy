@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 
 	"poorman-proxy/secret"
@@ -90,16 +91,24 @@ func createProxy(targetURL string, pathPrefix string, headerRewrite HeaderRewrit
 }
 
 func main() {
-	outboundProxyURL := flag.String("outbound-proxy-url", "", "Optional. URL of the outbound proxy server (e.g., http://user:pass@host:port or socks5://user:pass@host:port).")
+	outboundProxyURLFlag := flag.String("outbound-proxy-url", "", "Optional. URL of the outbound proxy server (e.g., http://user:pass@host:port or socks5://user:pass@host:port).")
 	flag.Parse()
 
-	println("outboundProxyURL", *outboundProxyURL)
+	outboundProxyURL := *outboundProxyURLFlag
+	if envURL, ok := os.LookupEnv("OUTBOUND_PROXY_URL"); ok && envURL != "" {
+		outboundProxyURL = envURL
+		log.Printf("Using outbound proxy URL from environment variable OUTBOUND_PROXY_URL: %s", outboundProxyURL)
+	} else if outboundProxyURL != "" {
+		log.Printf("Using outbound proxy URL from command-line flag: %s", outboundProxyURL)
+	} else {
+		log.Println("No outbound proxy URL specified via command-line flag or environment variable.")
+	}
 
 	secretKey := secret.Load()
 	// Create proxies with their respective header rewrite functions
-	openaiProxy := createProxy("https://api.openai.com", "/openai", RewriteOpenAIHeader, secretKey, *outboundProxyURL)
-	geminiProxy := createProxy("https://generativelanguage.googleapis.com", "/gemini", RewriteGeminiRequest, secretKey, *outboundProxyURL)
-	claudeProxy := createProxy("https://api.anthropic.com", "/claude", RewriteClaudeHeader, secretKey, *outboundProxyURL)
+	openaiProxy := createProxy("https://api.openai.com", "/openai", RewriteOpenAIHeader, secretKey, outboundProxyURL)
+	geminiProxy := createProxy("https://generativelanguage.googleapis.com", "/gemini", RewriteGeminiRequest, secretKey, outboundProxyURL)
+	claudeProxy := createProxy("https://api.anthropic.com", "/claude", RewriteClaudeHeader, secretKey, outboundProxyURL)
 
 	// Route handlers
 	http.HandleFunc("/openai/", func(w http.ResponseWriter, r *http.Request) {

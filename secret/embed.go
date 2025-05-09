@@ -3,6 +3,8 @@ package secret
 import (
 	_ "embed"
 	"encoding/json"
+	"os"
+	"strings"
 )
 
 //go:embed secret.json
@@ -23,5 +25,23 @@ func Load() Secret {
 	if err != nil {
 		panic(err)
 	}
+
+	if val, ok := os.LookupEnv("OPENAI_API_KEY"); ok {
+		secret.OpenAIKey = val
+	}
+	if val, ok := os.LookupEnv("GEMINI_API_KEY"); ok {
+		secret.GeminiKey = val
+	}
+	if val, ok := os.LookupEnv("CLAUDE_API_KEY"); ok {
+		secret.ClaudeKey = val
+	}
+	if val, ok := os.LookupEnv("PROXY_KEY"); ok {
+		if val != "" {
+			secret.ProxyKey = strings.Split(val, ",")
+		} else {
+			secret.ProxyKey = []string{}
+		}
+	}
+
 	return secret
 }

@@ -8,8 +8,8 @@ Poorman Proxy is a simple HTTP reverse proxy server written in Go. It allows you
     *   OpenAI API (`https://api.openai.com`) via `/openai/`
     *   Google Gemini API (`https://generativelanguage.googleapis.com`) via `/gemini/`
     *   Anthropic Claude API (`https://api.anthropic.com`) via `/claude/`
-*   Manages API keys and proxy authorization keys securely using an embedded `secret.json` file.
-*   Supports an outbound proxy (HTTP/SOCKS5) for its own connections to AI services, **configurable via command-line argument**.
+*   Manages API keys and proxy authorization keys securely using an embedded `secret.json` file. **These values can be overridden by environment variables at runtime.**
+*   Supports an outbound proxy (HTTP/SOCKS5) for its own connections to AI services, configurable via command-line argument **or an environment variable (which takes precedence).**
 *   Listens on port `8080` by default.
 *   Provides a `/health` endpoint for health checks.
 
@@ -33,12 +33,18 @@ Poorman Proxy is a simple HTTP reverse proxy server written in Go. It allows you
       "gemini_api_key": "your-gemini-api-key",
       "claude_api_key": "sk-ant-your-claude-api-key",
       "proxy_key": ["proxy_key"],
-      // Note: Outbound proxy is now configured via command-line argument, not in this file.
+      // Note: Outbound proxy is now configured via command-line argument or environment variable.
     }
     ```
     The `*_proxy_key` fields are optional and can be used if you want to add an extra layer of authorization to access the proxy itself. If configured, requests to the proxy for a specific service must include one of the corresponding `*_proxy_key` values in the `Authorization` header (e.g., `Authorization: Bearer your-proxy-key`).
 
     **Important:** The `secret/secret.json` file is gitignored by default to prevent accidental commitment of sensitive information.
+
+    **Alternatively, or to override values from `secret.json`, you can set the following environment variables:**
+    *   `OPENAI_API_KEY`: Your OpenAI API key.
+    *   `GEMINI_API_KEY`: Your Google Gemini API key.
+    *   `CLAUDE_API_KEY`: Your Anthropic Claude API key.
+    *   `PROXY_KEY`: A comma-separated list of proxy authorization keys (e.g., `key1,key2,key3`).
 
 ## Usage
 
@@ -60,7 +66,7 @@ To run the proxy server:
 ./proxy
 ```
 
-To run with an outbound proxy for all AI service requests:
+To run with an outbound proxy for all AI service requests (using the command-line flag):
 
 ```bash
 ./proxy -outbound-proxy-url="http://user:password@your-proxy-server.com:port"
@@ -69,21 +75,43 @@ Or for a SOCKS5 proxy:
 ```bash
 ./proxy -outbound-proxy-url="socks5://user:password@your-socks-proxy.com:port"
 ```
+
+**Alternatively, you can set the `OUTBOUND_PROXY_URL` environment variable:**
+```bash
+export OUTBOUND_PROXY_URL="http://user:password@your-proxy-server.com:port"
+./proxy
+```
+If both the environment variable `OUTBOUND_PROXY_URL` and the command-line flag `-outbound-proxy-url` are set, **the environment variable will take precedence.**
+
 If the proxy URL is invalid or parsing fails, Poorman Proxy will log an error and proceed without an outbound proxy (direct connection).
-If no `-outbound-proxy-url` is provided, it will also use a direct connection.
+If no outbound proxy is specified (neither via flag nor environment variable), it will also use a direct connection.
 
 The server will start listening on `http://localhost:8080`.
 
 ### Configuring an Outbound Proxy
 
-If the machine running Poorman Proxy cannot directly access the AI service APIs (e.g., due to network restrictions), you can configure Poorman Proxy to use an intermediary proxy for its outgoing connections by providing the `-outbound-proxy-url` command-line argument when starting the server.
+If the machine running Poorman Proxy cannot directly access the AI service APIs (e.g., due to network restrictions), you can configure Poorman Proxy to use an intermediary proxy for its outgoing connections. This can be done in two ways, with the environment variable taking precedence:
 
-Examples:
-*   HTTP Proxy: `./proxy -outbound-proxy-url="http://username:password@proxy.example.com:8080"`
-*   SOCKS5 Proxy: `./proxy -outbound-proxy-url="socks5://username:password@proxy.example.com:1080"`
+1.  **Environment Variable (Recommended):**
+    Set the `OUTBOUND_PROXY_URL` environment variable before running the proxy:
+    ```bash
+    export OUTBOUND_PROXY_URL="<proxy_url_scheme>://[user:password@]host:port"
+    ./proxy
+    ```
+    Example HTTP Proxy: `export OUTBOUND_PROXY_URL="http://username:password@proxy.example.com:8080"`
+    Example SOCKS5 Proxy: `export OUTBOUND_PROXY_URL="socks5://username:password@proxy.example.com:1080"`
+
+2.  **Command-Line Argument:**
+    Provide the `-outbound-proxy-url` argument when starting the server:
+    ```bash
+    ./proxy -outbound-proxy-url="<proxy_url_scheme>://[user:password@]host:port"
+    ```
+    Examples:
+    *   HTTP Proxy: `./proxy -outbound-proxy-url="http://username:password@proxy.example.com:8080"`
+    *   SOCKS5 Proxy: `./proxy -outbound-proxy-url="socks5://username:password@proxy.example.com:1080"`
 
 If your proxy does not require authentication, you can omit `username:password@` from the URL.
-If the argument is not provided, Poorman Proxy will attempt direct connections to the AI services.
+If neither method is used, Poorman Proxy will attempt direct connections to the AI services.
 
 ### Example Requests
 
@@ -155,8 +183,8 @@ The proxy uses `net/http/httputil.ReverseProxy` to forward requests. For each su
 2.  The path prefix is stripped before forwarding.
 3.  A dedicated header rewrite function is invoked to:
     *   Set the correct `Host` header for the upstream service.
-    *   Inject the appropriate API key (e.g., `Authorization: Bearer <OPENAI_API_KEY>`, `x-goog-api-key: <GEMINI_API_KEY>`, `x-api-key: <CLAUDE_API_KEY>`) from the `secret.json` file.
-    *   (Optional) If `*_proxy_key` is configured in `secret.json`, it checks the incoming request's `Authorization` header for a matching proxy key.
+    *   Inject the appropriate API key (e.g., `Authorization: Bearer <OPENAI_API_KEY>`, `x-goog-api-key: <GEMINI_API_KEY>`, `x-api-key: <CLAUDE_API_KEY>`) from the `secret.json` file **or the corresponding environment variable if set.**
+    *   (Optional) If `*_proxy_key` is configured in `secret.json` **(or via `PROXY_KEY` environment variable)**, it checks the incoming request's `Authorization` header for a matching proxy key.
 
 ## TODO
 
