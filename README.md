@@ -32,9 +32,7 @@ Poorman Proxy is a simple HTTP reverse proxy server written in Go. It allows you
       "openai_api_key": "sk-your-openai-api-key",
       "gemini_api_key": "your-gemini-api-key",
       "claude_api_key": "sk-ant-your-claude-api-key",
-      "openai_proxy_key": ["optional-proxy-auth-key-for-openai"],
-      "gemini_proxy_key": ["optional-proxy-auth-key-for-gemini"],
-      "claude_proxy_key": ["optional-proxy-auth-key-for-claude"]
+      "proxy_key": ["proxy_key"],
       // Note: Outbound proxy is now configured via command-line argument, not in this file.
     }
     ```
