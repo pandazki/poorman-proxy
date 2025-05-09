@@ -1,0 +1,51 @@
+package proxy
+
+import (
+	"net/http"
+	"poorman-proxy/secret"
+)
+
+// RewriteOpenAIHeader modifies the request header for OpenAI API.
+// here is an example:
+//
+//	curl "https://api.openai.com/v1/chat/completions" \
+//		-H "Content-Type: application/json" \
+//		-H "Authorization: Bearer $OPENAI_API_KEY" \
+//		-d '{
+//			"model": "gpt-4.1",
+//			"messages": [
+//				{
+//					"role": "user",
+//					"content": "Write a one-sentence bedtime story about a unicorn."
+//				}
+//			]
+//		}'
+func RewriteOpenAIHeader(req *http.Request, key_info secret.Secret) {
+	openai_key := key_info.OpenAIKey
+	user_key := req.Header.Get("Authorization")
+
+	// Strip "Bearer " prefix if present
+	if len(user_key) > 7 && user_key[:7] == "Bearer " {
+		user_key = user_key[7:]
+	}
+
+	found := false
+	for _, key := range key_info.OpenAIProxyKey {
+		if user_key == key {
+			openai_key = key
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		// reject the request by sending empty authorization
+		req.Header.Del("Authorization")
+		req.Header.Set("Authorization", "")
+		return
+	}
+
+	// Set the proper Authorization header with Bearer prefix
+	req.Header.Del("Authorization")
+	req.Header.Set("Authorization", "Bearer "+openai_key)
+}
